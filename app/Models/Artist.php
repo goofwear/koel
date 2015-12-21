@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Facades\Util;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -21,9 +22,17 @@ class Artist extends Model
         return $this->hasMany(Album::class);
     }
 
+    /**
+     * Sometimes the tags extracted from getID3 are HTML entity encoded.
+     * This makes sure they are always sane.
+     *
+     * @param $value
+     *
+     * @return string
+     */
     public function getNameAttribute($value)
     {
-        return $value ?: self::UNKNOWN_NAME;
+        return html_entity_decode($value ?: self::UNKNOWN_NAME);
     }
 
     /**
@@ -36,19 +45,13 @@ class Artist extends Model
      */
     public static function get($name)
     {
+        // Remove the BOM from UTF-8/16/32, as it will mess up the database constraints.
+        if ($encoding = Util::detectUTFEncoding($name)) {
+            $name = mb_convert_encoding($name, 'UTF-8', $encoding);
+        }
+
         $name = trim($name) ?: self::UNKNOWN_NAME;
 
         return self::firstOrCreate(compact('name'), compact('name'));
-    }
-
-    /**
-     * Sometimes the tags extracted from getID3 are HTML entity encoded.
-     * This makes sure they are always sane.
-     *
-     * @param $value
-     */
-    public function setNameAttribute($value)
-    {
-        $this->attributes['name'] = html_entity_decode($value);
     }
 }

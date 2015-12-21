@@ -69,7 +69,7 @@ class Album extends Model
     {
         $extension = explode('/', $cover['image_mime']);
         $fileName = uniqid().'.'.strtolower($extension[1]);
-        $coverPath = app()->publicPath().'/img/covers/'.$fileName;
+        $coverPath = app()->publicPath().'/public/img/covers/'.$fileName;
 
         file_put_contents($coverPath, $cover['data']);
 
@@ -102,8 +102,8 @@ class Album extends Model
      *
      * @param $value
      */
-    public function setNameAttribute($value)
+    public function getNameAttribute($value)
     {
-        $this->attributes['name'] = html_entity_decode($value);
+        return html_entity_decode($value);
     }
 }

@@ -8,7 +8,7 @@
         <site-header></site-header>
         <main-wrapper></main-wrapper>
         <site-footer></site-footer>
-        <overlay v-show="loading"></overlay>
+        <overlay :state.sync="overlayState"></overlay>
     </div>
 </template>
 
@@ -36,13 +36,19 @@
 
         data() {
             return {
-                loading: false,
                 prefs: preferenceStore.state,
+
+                overlayState: {
+                    showing: true,
+                    dismissable: false,
+                    type: 'loading',
+                    message: '',
+                },
             };
         },
 
         ready() {
-            this.toggleOverlay();
+            this.showOverlay();
 
             // Make the most important HTTP request to get all necessary data from the server.
             // Afterwards, init all mandatory stores and services.
@@ -50,8 +56,7 @@
                 this.initStores();
                 playback.init(this);
 
-                // Hide the overlaying loading screen.
-                this.toggleOverlay();
+                this.hideOverlay();
 
                 // Ask for user's notificatio permission.
                 this.requestNotifPermission();
@@ -174,13 +179,58 @@
             },
 
             /**
-             * Show or hide the loading overlay.
+             * Shows the overlay.
+             * 
+             * @param {String}  message     The message to display.
+             * @param {String}  type        (loading|success|info|warning|error)
+             * @param {Boolean} dismissable Whether to show the Close button
              */
-            toggleOverlay() {
-                this.loading = !this.loading;
-            }
+            showOverlay(message = 'Just a little patience…', type = 'loading', dismissable = false) {
+                this.overlayState.message = message;
+                this.overlayState.type = type;
+                this.overlayState.dismissable = dismissable;
+                this.overlayState.showing = true;
+            },
+
+            /**
+             * Hides the overlay.
+             */
+            hideOverlay() {
+                this.overlayState.showing = false;
+            },
+
+            /**
+             * Shows the close button, allowing the user to close the overlay.
+             */
+            setOverlayDimissable() {
+                this.overlayState.dismissable = true;
+            },
         },
     };
+
+    /**
+     * Modified version of orderBy that is case insensitive
+     *
+     * @source https://github.com/vuejs/vue/blob/dev/src/filters/array-filters.js
+     */
+    Vue.filter('caseInsensitiveOrderBy', (arr, sortKey, reverse) => {
+        if (!sortKey) {
+            return arr;
+        }
+
+        var order = (reverse && reverse < 0) ? -1 : 1
+        
+        // sort on a copy to avoid mutating original array
+        return arr.slice().sort((a, b) => {
+            a = Vue.util.isObject(a) ? Vue.parsers.path.getPath(a, sortKey) : a
+            b = Vue.util.isObject(b) ? Vue.parsers.path.getPath(b, sortKey) : b
+
+            a = a === undefined ? a : a.toLowerCase()
+            b = b === undefined ? b : b.toLowerCase()
+
+            return a === b ? 0 : a > b ? order : -order
+        });
+    });
 
     // Register the global directives
     Vue.directive('koel-focus', require('./directives/focus'));

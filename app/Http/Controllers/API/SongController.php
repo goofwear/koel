@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Streamers\PHPStreamer;
+use App\Http\Streamers\XAccelRedirectStreamer;
 use App\Http\Streamers\XSendFileStreamer;
 use App\Models\Song;
 
@@ -10,22 +11,21 @@ class SongController extends Controller
 {
     /**
      * Play a song.
-     * As of current Koel supports two streamer: x_sendfile and native PHP readfile.
+     *
+     * @link https://github.com/phanan/koel/wiki#streaming-music
      *
      * @param $id
      */
     public function play($id)
     {
-        if (env('MOD_X_SENDFILE_ENABLED')) {
-            (new XSendFileStreamer($id))->stream();
-
-            return;
+        switch (env('STREAMING_METHOD')) {
+            case 'x-sendfile':
+                return (new XSendFileStreamer($id))->stream();
+            case 'x-accel-redirect':
+                return (new XAccelRedirectStreamer($id))->stream();
+            default:
+                return (new PHPStreamer($id))->stream();
         }
-
-        (new PHPStreamer($id))->stream();
-
-        // Exit here to avoid accidentally sending extra content at the end of the file.
-        exit;
     }
 
     /**
